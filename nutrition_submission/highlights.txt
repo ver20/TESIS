@@ -1,0 +1,7 @@
+Highlights
+
+- LightGBM predicted childhood stunting in Peru with an AUC-ROC of 0.83
+- Model trained on 304,271 children from 19 years of ENDES survey data
+- Poverty, birth weight, size at birth and altitude drove predicted risk
+- SHAP profiles show that risk factors differ across Peru's departments
+- A web tool flags high-risk children for triage; experts rated it useful

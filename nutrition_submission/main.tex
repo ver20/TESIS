@@ -1,0 +1,130 @@
+%% Submission template for Nutrition (Elsevier, ISSN 0899-9007)
+%% Built from the journal's Guide for Authors. Nutrition has no journal-specific
+%% class: Elsevier asks for an editable .tex source and accepts the generic
+%% elsarticle class (single or double column is allowed for LaTeX).
+%% Copy the content of your current manuscript into the marked places.
+
+\documentclass[preprint,12pt]{elsarticle}   % single column, easy for reviewers
+%% \documentclass[5p,times]{elsarticle}    % two-column alternative (allowed for LaTeX)
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}          % tables without vertical rules (guide: avoid vertical rules)
+\usepackage{setspace}
+\doublespacing
+\usepackage{lineno}
+\linenumbers
+\usepackage[hidelinks]{hyperref}
+
+\biboptions{sort&compress}     % numbered references in square brackets, e.g. [3,6]
+
+\journal{Nutrition}
+
+\begin{document}
+
+\begin{frontmatter}
+
+%% ---------------------------------------------------------------- Title page
+\title{Machine learning model for predicting the risk of childhood stunting in Peru}
+
+\author[upeu]{Abel Is-Boset Guevara Huasco}
+\author[upeu]{Zulin Pamela Vallejos Cotrina}
+\author[upeu]{Ver\'onica Lisseth Vergara Rojas\corref{cor1}}
+\ead{CORRESPONDING-AUTHOR-EMAIL}   % guide: the corresponding author's e-mail is required and is published
+\cortext[cor1]{Corresponding author.}
+
+\affiliation[upeu]{organization={School of Systems Engineering, Faculty of Engineering and Architecture, Universidad Peruana Uni\'on},
+            addressline={FULL POSTAL ADDRESS},
+            city={Lima},
+            postcode={POSTCODE},
+            country={Peru}}
+
+%% ---------------------------------------------------------------- Abstract
+%% Max. 250 words, structured. No references in the abstract.
+\begin{abstract}
+\textbf{Objective:} ...
+
+\textbf{Methods:} ...
+
+\textbf{Results:} ...
+
+\textbf{Conclusions:} ...
+\end{abstract}
+
+%% 1 to 7 keywords
+\begin{keyword}
+Stunting \sep Machine learning \sep LightGBM \sep SHAP \sep Peru \sep Triage
+\end{keyword}
+
+\end{frontmatter}
+
+%% ---------------------------------------------------------------- Main text
+%% Original research: 3000-5000 words INCLUDING tables, figures and references.
+
+\section{Introduction}
+
+\section{Methods}
+\subsection{Data understanding}
+\subsection{Data preparation}
+\subsection{Modeling}
+\subsection{Evaluation}
+\subsection{Deployment}
+\subsection{Ethical considerations}
+
+\section{Results}
+
+\section{Discussion}
+
+\section{Conclusions}
+
+%% Figures: cite all of them in the text; upload each one also as a separate file
+%% (Figure_1.pdf, Figure_2.pdf, ...). The caption is a short title + description;
+%% the title must not appear inside the image itself.
+% \begin{figure}[t]
+%   \centering
+%   \includegraphics[width=\linewidth]{Figure_1.pdf}
+%   \caption{Methodological workflow of the study according to the CRISP-DM phases.}
+%   \label{fig:crispdm}
+% \end{figure}
+
+%% ---------------------------------------------------------------- Back matter
+%% Order required by the guide: these sections go before the reference list.
+
+\section*{Data availability}
+The ENDES microdata are publicly available from the INEI portal (https://proyectos.inei.gob.pe/microdatos/).
+The code and the trained model are deposited in Zenodo (https://doi.org/10.5281/zenodo.23963410;
+https://doi.org/10.5281/zenodo.23962363).
+
+\section*{CRediT authorship contribution statement}
+%% Use only CRediT roles: Conceptualization, Data curation, Formal analysis,
+%% Funding acquisition, Investigation, Methodology, Project administration,
+%% Resources, Software, Supervision, Validation, Visualization,
+%% Writing - original draft, Writing - review & editing.
+\textbf{Abel Is-Boset Guevara Huasco:} ...
+\textbf{Zulin Pamela Vallejos Cotrina:} ...
+\textbf{Ver\'onica Lisseth Vergara Rojas:} ...
+
+\section*{Funding}
+This research did not receive any specific grant from funding agencies in the public, commercial, or not-for-profit sectors.
+
+\section*{Declaration of competing interest}
+The authors declare that they have no known competing financial interests or personal relationships that could have
+appeared to influence the work reported in this paper.
+
+\section*{Acknowledgments}
+%% Only here: not on the title page and not as footnotes.
+
+\section*{Declaration of generative AI and AI-assisted technologies in the manuscript preparation process}
+During the preparation of this work the authors used Claude (Anthropic) to improve the writing, readability and
+organization of the text. After using this tool, the authors reviewed and edited the content as needed and take full
+responsibility for the content of the published article.
+
+%% ---------------------------------------------------------------- References
+%% Numbered in order of appearance; any consistent style is accepted at submission.
+%% In the .bib file write "\&" (not "&amp;") and remove HTML tags such as <scp>.
+\bibliographystyle{elsarticle-num}
+\bibliography{references}
+
+\end{document}
