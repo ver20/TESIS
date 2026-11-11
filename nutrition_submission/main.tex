@@ -9,6 +9,7 @@
 
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
+\usepackage{lmodern}            % scalable fonts in the PDF
 \usepackage{amsmath,amssymb}
 \usepackage{graphicx}
 \usepackage{booktabs}          % tables without vertical rules (guide: avoid vertical rules)
@@ -16,6 +17,7 @@
 \doublespacing
 \usepackage{lineno}
 \linenumbers
+\usepackage{xurl}               % long URLs break at the margin
 \usepackage[hidelinks]{hyperref}
 
 \biboptions{sort&compress}     % numbered references in square brackets, e.g. [3,6]
@@ -44,13 +46,13 @@
 %% ---------------------------------------------------------------- Abstract
 %% Max. 250 words, structured. No references in the abstract.
 \begin{abstract}
-\textbf{Objective:} ...
+\noindent\textbf{Objective:} ...
 
-\textbf{Methods:} ...
+\noindent\textbf{Methods:} ...
 
-\textbf{Results:} ...
+\noindent\textbf{Results:} ...
 
-\textbf{Conclusions:} ...
+\noindent\textbf{Conclusions:} ...
 \end{abstract}
 
 %% 1 to 7 keywords
@@ -93,18 +95,18 @@ Stunting \sep Machine learning \sep LightGBM \sep SHAP \sep Peru \sep Triage
 %% Order required by the guide: these sections go before the reference list.
 
 \section*{Data availability}
-The ENDES microdata are publicly available from the INEI portal (https://proyectos.inei.gob.pe/microdatos/).
-The code and the trained model are deposited in Zenodo (https://doi.org/10.5281/zenodo.23963410;
-https://doi.org/10.5281/zenodo.23962363).
+The ENDES microdata are publicly available from the INEI portal (\url{https://proyectos.inei.gob.pe/microdatos/}).
+The code and the trained model are deposited in Zenodo (code: \url{https://doi.org/10.5281/zenodo.23963410};
+model: \url{https://doi.org/10.5281/zenodo.23962363}).
 
 \section*{CRediT authorship contribution statement}
 %% Use only CRediT roles: Conceptualization, Data curation, Formal analysis,
 %% Funding acquisition, Investigation, Methodology, Project administration,
 %% Resources, Software, Supervision, Validation, Visualization,
 %% Writing - original draft, Writing - review & editing.
-\textbf{Abel Is-Boset Guevara Huasco:} ...
-\textbf{Zulin Pamela Vallejos Cotrina:} ...
-\textbf{Ver\'onica Lisseth Vergara Rojas:} ...
+\noindent\textbf{Abel Is-Boset Guevara Huasco:} ...\par
+\noindent\textbf{Zulin Pamela Vallejos Cotrina:} ...\par
+\noindent\textbf{Ver\'onica Lisseth Vergara Rojas:} ...\par
 
 \section*{Funding}
 This research did not receive any specific grant from funding agencies in the public, commercial, or not-for-profit sectors.
