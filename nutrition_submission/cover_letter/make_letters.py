@@ -3,7 +3,7 @@ import docx
 from docx.shared import Pt, Cm
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 
-DATE = {"en": "Lima, 12 November 2026", "es": "Lima, 12 de noviembre de 2026"}
+DATE = {"en": "Lima, 13 November 2026", "es": "Lima, 13 de noviembre de 2026"}
 T = {
 "en": dict(
  heading="Cover Letter", salute="Dear Editor,",
