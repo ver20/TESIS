@@ -1,0 +1,188 @@
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{mathptmx}
+\usepackage[a4paper,margin=2.3cm]{geometry}
+\usepackage{booktabs,tabularx,array}
+\usepackage{enumitem}
+\usepackage{xurl}
+\usepackage[hidelinks]{hyperref}
+\usepackage{caption}
+\captionsetup{labelfont=bf,justification=raggedright,singlelinecheck=false,skip=6pt}
+\renewcommand{\tablename}{Supplementary Table}
+\renewcommand{\thetable}{S\arabic{table}}
+\newcolumntype{L}{>{\raggedright\arraybackslash}X}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt}
+\renewcommand{\arraystretch}{1.18}
+
+\begin{document}
+
+{\Large\bfseries Supplementary material\par}
+\vspace{4pt}
+{\large Machine learning model for predicting the risk of childhood stunting in Peru\par}
+\vspace{4pt}
+{\small Abel Is-Boset Guevara-Huasco, Zulin Pamela Vallejos-Cotrina, Ver\'onica Lisseth Vergara-Rojas,
+Ferdinand Edgardo Pineda-Ancco, Nemias Saboya-Rios\par}
+\vspace{2pt}
+\hrule
+\vspace{6pt}
+
+\textbf{Contents}
+\begin{itemize}[nosep,leftmargin=1.2em]
+  \item Supplementary Table S1. Predictor variables of the model grouped by domain.
+  \item Supplementary Table S2. Configuration of the algorithms compared.
+  \item Supplementary Table S3. Constructs and items of the relevance assessment instrument.
+  \item Supplementary Text S1. Check of the variable selection.
+\end{itemize}
+
+%% ------------------------------------------------------------------ S1
+\begin{table}[h]
+\caption{Predictor variables of the model grouped by domain (45 variables; ENDES code in parentheses).}
+\small
+\begin{tabularx}{\linewidth}{@{}p{3.4cm}L@{}}
+\toprule
+Domain ($n$) & Variables \\
+\midrule
+Child (7) & Sex (HC27), Age in months (HC1), Birth weight (M19), Size at birth reported by the mother (M18),
+Altitude-adjusted hemoglobin (HC56), Interval since the previous birth (HC63), Usual resident (HV102) \\
+Mother, pregnancy and breastfeeding (11) & Mother's education (HC62), Prenatal visits (M14), Month of first prenatal
+visit (M13), Days of iron during pregnancy (M46), Antiparasitic drugs during pregnancy (M60), Place of delivery (M15),
+Cesarean delivery (M17), Postpartum vitamin A (M54), Hours until breastfeeding initiation (M34), Formula in the first
+days (M55G), Duration of breastfeeding (M4) \\
+Household and territory (8) & Wealth index (HV271), Area of residence (HV025), Altitude (HV040), Household members
+(HV012), Children under five in the household (HV014), Age of household head (HV220), Sex of household head (HV219),
+Traditional transport (SH77F) \\
+Water and sanitation (10) & Water all day (SH42), Time to water source (HV204), Water treatment (HV237), Boiled water
+(HV237A), Bottled water (HV237G), Water stored in container (SH48), Container type (SH49), Container with lid (SH50),
+Shared toilet facility (HV225), Iodine in salt (HV234) \\
+Housing (9) & Rooms (SH71), Bedrooms (HV216), Lighting source (SH70), Kitchen smoke outlet (HV240), Kitchen in separate
+room (HV242), Other cooking fuel (SH63), Glass windows (SH76B), Wooden windows (SH76C), Windows with screens (SH76D) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+%% ------------------------------------------------------------------ S2
+\begin{table}[h]
+\caption{Configuration of the algorithms compared. Hyperparameters were set in advance, without a systematic search;
+those not listed keep the default values of each library. \texttt{random\_state = 42} in all models.}
+\small
+\begin{tabularx}{\linewidth}{@{}p{3.4cm}L@{}}
+\toprule
+Model & Configuration \\
+\midrule
+Logistic regression & L2 regularization; balanced class weights; maximum of 500 iterations \\
+Decision tree (CART) & Maximum depth of 5; balanced class weights \\
+XGBoost & 300 trees; \texttt{scale\_pos\_weight} equal to the ratio of negative to positive class;
+\texttt{min\_child\_weight} $= 10^{-7}$ \\
+CatBoost & 300 iterations; balanced class weights; native categorical variables \\
+Neural network (MLP) & Three hidden layers of 200 neurons; up to 50 iterations with early stopping; no weighting \\
+LightGBM & 300 trees; balanced class weights; native categorical variables \\
+\bottomrule
+\end{tabularx}
+
+\vspace{3pt}
+{\footnotesize Software: Python 3.12, LightGBM 4.6.0, XGBoost 3.2.0, CatBoost 1.2.10, scikit-learn 1.8.0 and SHAP 0.52.0.}
+\end{table}
+
+\clearpage
+%% ------------------------------------------------------------------ S3
+\begin{table}[h]
+\caption{Constructs and items of the relevance assessment instrument. Items were rated on a five-point Likert scale
+(1 = strongly disagree; 5 = strongly agree). The instrument was administered in Spanish; the items are translated
+here.}
+\small
+\begin{tabularx}{\linewidth}{@{}p{3.2cm}p{1.65cm}L@{}}
+\toprule
+Construct & Source & Items \\
+\midrule
+Job relevance & TAM2 [1] &
+\textbf{R1.} In my field of work, using a system like this would be important.\newline
+\textbf{R2.} In my field of work, using a system like this would be relevant for deciding on nutritional interventions. \\
+Output quality & TAM2 [1] &
+\textbf{C1.} The risk factors it identifies by department are consistent with my professional experience.\newline
+\textbf{C2.} I am confident that the risk levels assigned by the system are accurate. \\
+Result demonstrability & TAM2 [1] &
+\textbf{D1.} I understand why the system assigns a risk level to a specific child.\newline
+\textbf{D2.} I could explain the results provided by the system to a colleague. \\
+Perceived usefulness & TAM [2] &
+\textbf{U1.} The system would allow me to prioritize which children to attend first when resources are limited.\newline
+\textbf{U2.} Using it would save time compared with current methods of case identification.\newline
+\textbf{U3.} Overall, it would improve the effectiveness of targeting work. \\
+Perceived ease of use & TAM [2] &
+\textbf{F1.} Entering a child's data into the system is easy.\newline
+\textbf{F2.} The risk level and the departmental map are easy to read.\newline
+\textbf{F3.} Learning to use the system would not require extensive training. \\
+Perceptions of external control & TAM3 [3] &
+\textbf{K1.} Except for hemoglobin, the data requested by the system are available in the records of my field of work.\newline
+\textbf{K2.} Hemoglobin data are usually available for the children I attend.\newline
+\textbf{K3.} My institution has the means (equipment, connectivity, staff) to use a tool like this. \\
+Subjective norm & TAM2 [1] &
+\textbf{S1.} My colleagues would consider the use of a tool like this appropriate.\newline
+\textbf{S2.} The health authorities in my field would support its adoption. \\
+Intention to use & TAM [2] &
+\textbf{I1.} I would use this system if it were available in my field of work.\newline
+\textbf{I2.} I would recommend its use to colleagues in nutrition or public health. \\
+\midrule
+Overall rating & --- & From 1 to 10, what potential do you assign to this tool for public health work? \\
+Open-ended questions & --- &
+(1) What additional variables or information should the system include?
+(2) What limitations do you identify from your professional experience?
+(3) In what specific scenario of your practice would you apply this tool?
+(4) Recommendations for a next version. \\
+\bottomrule
+\end{tabularx}
+
+\vspace{3pt}
+{\footnotesize The form also recorded the evaluator's profession, academic degree, years of clinical experience,
+institution and region; these data were used only to describe the panel.}
+\end{table}
+
+%% ------------------------------------------------------------------ Text S1
+\section*{Supplementary Text S1. Check of the variable selection}
+
+To rule out that the feature selection had removed useful information, the effect of adding back the excluded
+variables was checked. Of the 78 columns available in the preprocessed dataset, 33 were not among the 45 selected.
+These were ranked by their relationship with stunting: for categorical attributes, the range between the highest and
+lowest prevalence among categories with at least 500 observations was used, whereas for continuous variables the
+statistic $2\,|\mathrm{AUC} - 0.5|$ was used.
+
+Four experimental configurations were compared: the 45-variable model and three that added the top-ranked variables
+(water, sanitation and housing; territory; and both), keeping the partition, the weights, the deterministic seed and
+the classifier hyperparameters constant.
+
+The ranking identified ten attributes with a marked relationship with stunting, among them the predominant material of
+the walls (HV214), floor (HV213) and roof (HV215); the source of drinking water (HV201); the department of residence
+(HV024); the residual chlorine concentration in water (SH227); the cooking fuel (HV226); and the type of toilet facility
+(HV205). These attributes make up the block of water, sanitation, hygiene and material housing conditions, recognized as
+an underlying determinant of linear growth faltering [4,5] and found among the main predictors in studies based on DHS
+data [6]. None of them constitutes information leakage, as they describe structural household conditions observable
+before a home visit.
+
+Adding the ten attributes did not improve any of the three configurations tested: the AUC-ROC (0.8295), sensitivity
+(76.44\%) and precision (36.36\%) were identical to those of the 45-variable model, because the model did not use the
+added variables. These attributes do contain information: a classifier trained only with the water, sanitation and
+housing block achieved an AUC-ROC of 0.6895. Nor do they duplicate the wealth index, which explained between
+$\eta^2 = 0.038$ and $\eta^2 = 0.098$ of the variance of each one. The 45-variable subset already represents water,
+sanitation and housing conditions through nineteen correlated attributes (Supplementary Table S1), so the exclusion of
+the candidate variables is a methodologically sound decision.
+
+\section*{References}
+\begin{enumerate}[label={[\arabic*]},leftmargin=2em,itemsep=2pt]\small
+\item Venkatesh V, Davis FD. A theoretical extension of the technology acceptance model: four longitudinal field
+studies. Manage Sci 2000;46:186--204. \url{https://doi.org/10.1287/mnsc.46.2.186.11926}.
+\item Davis FD. Perceived usefulness, perceived ease of use, and user acceptance of information technology. MIS Q
+1989;13:319--40. \url{https://doi.org/10.2307/249008}.
+\item Venkatesh V, Bala H. Technology acceptance model 3 and a research agenda on interventions. Decis Sci
+2008;39:273--315. \url{https://doi.org/10.1111/j.1540-5915.2008.00192.x}.
+\item Black RE, Victora CG, Walker SP, Bhutta ZA, Christian P, de Onis M, et al. Maternal and child undernutrition and
+overweight in low-income and middle-income countries. Lancet 2013;382:427--51.
+\url{https://doi.org/10.1016/S0140-6736(13)60937-X}.
+\item Victora CG, Christian P, Vidaletti LP, Gatica-Dom\'inguez G, Menon P, Black RE. Revisiting maternal and child
+undernutrition in low-income and middle-income countries: variable progress towards an unfinished agenda. Lancet
+2021;397:1388--99. \url{https://doi.org/10.1016/S0140-6736(21)00394-9}.
+\item Bitew FH, Sparks CS, Nyarko SH. Machine learning algorithms for predicting undernutrition among under-five
+children in Ethiopia. Public Health Nutr 2021;25:269--80. \url{https://doi.org/10.1017/S1368980021004262}.
+\end{enumerate}
+
+\end{document}
