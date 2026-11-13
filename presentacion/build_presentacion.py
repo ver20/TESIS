@@ -1,19 +1,21 @@
+"""Fill the XVIII Jornada Científica template with the content of the article."""
 import copy, sys
 from pptx import Presentation
-from pptx.util import Inches, Pt, Emu
+from pptx.util import Inches, Pt
 from pptx.dml.color import RGBColor
-from pptx.enum.shapes import MSO_SHAPE_TYPE
+from pptx.enum.shapes import MSO_SHAPE_TYPE, MSO_SHAPE
 from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
 from PIL import Image
 
 SRC, OUT, FIG = sys.argv[1], sys.argv[2], sys.argv[3]
 p = Presentation(SRC)
-E = 914400
+NAVY, YELLOW, WHITE, GRAY, LIGHT = (RGBColor(0x00, 0x38, 0x65), RGBColor(0xF8, 0xA9, 0x00),
+                                    RGBColor(0xFF, 0xFF, 0xFF), RGBColor(0x1E, 0x1E, 0x1E), RGBColor(0xE8, 0xEE, 0xF5))
+FONT = "DM Sans"
 
 
 def find(slide, path):
-    shapes = slide.shapes
-    sh = None
+    shapes, sh = slide.shapes, None
     for sid in path:
         sh = next(s for s in shapes if s.shape_id == sid)
         if sh.shape_type == MSO_SHAPE_TYPE.GROUP:
@@ -22,7 +24,6 @@ def find(slide, path):
 
 
 def setp(slide, path, pidx, texts):
-    """Write texts into the existing runs of a paragraph (keeps formatting)."""
     par = find(slide, path).text_frame.paragraphs[pidx]
     runs = par.runs
     assert len(texts) <= len(runs), (path, pidx, len(runs), texts)
@@ -30,9 +31,26 @@ def setp(slide, path, pidx, texts):
         r.text = t
 
 
-def drop_par(slide, path, pidx):
-    par = find(slide, path).text_frame.paragraphs[pidx]
-    par._p.getparent().remove(par._p)
+def set_lines(slide, path, lines, size=None):
+    """Replace a text box's content with one paragraph per line, cloning the first paragraph's format."""
+    tf = find(slide, path).text_frame
+    first = tf.paragraphs[0]
+    for extra in tf.paragraphs[1:]:
+        extra._p.getparent().remove(extra._p)
+    proto = copy.deepcopy(first._p)
+    for i, line in enumerate(lines):
+        par = first if i == 0 else None
+        if par is None:
+            newp = copy.deepcopy(proto)
+            tf._txBody.append(newp)
+            par = tf.paragraphs[-1]
+        runs = par.runs
+        runs[0].text = line
+        par.alignment = PP_ALIGN.LEFT
+        for r in runs[1:]:
+            r.text = ""
+        if size:
+            runs[0].font.size = Pt(size)
 
 
 def delete(slide, ids):
@@ -45,8 +63,20 @@ def pic_fit(slide, img, x, y, w, h):
     iw, ih = Image.open(img).size
     r = min(w / iw, h / ih)
     pw, ph = iw * r, ih * r
-    pic = slide.shapes.add_picture(img, Inches(x + (w - pw) / 2), Inches(y + (h - ph) / 2), Inches(pw), Inches(ph))
-    return pic
+    return slide.shapes.add_picture(img, Inches(x + (w - pw) / 2), Inches(y + (h - ph) / 2), Inches(pw), Inches(ph))
+
+
+def textbox(slide, x, y, w, h, text, size=20, color=GRAY, bold=False, align=PP_ALIGN.LEFT, italic=False):
+    tb = slide.shapes.add_textbox(Inches(x), Inches(y), Inches(w), Inches(h))
+    tf = tb.text_frame
+    tf.word_wrap = True
+    par = tf.paragraphs[0]
+    par.alignment = align
+    r = par.add_run()
+    r.text = text
+    r.font.name = FONT; r.font.size = Pt(size); r.font.bold = bold; r.font.italic = italic
+    r.font.color.rgb = color
+    return tb
 
 
 def notes(slide, text):
@@ -54,290 +84,255 @@ def notes(slide, text):
 
 
 S = lambda n: p.slides[n - 1]
-LBL = (2, 4)
-TTL = (5, 7)
 
-# ---------------------------------------------------------------- 1 Portada
+
+def content_slide(n, title, subtitle, title_size=60):
+    """Slides built on the 'Introducción' layout (title 33, subtitle 32, boxes 2/5/8/11, texts 34/35)."""
+    s = S(n)
+    setp(s, (33,), 0, [title])
+    find(s, (33,)).text_frame.paragraphs[0].runs[0].font.size = Pt(title_size)
+    setp(s, (32,), 0, [subtitle])
+    sub = find(s, (32,))
+    sub.text_frame.paragraphs[0].runs[0].font.size = Pt(24)
+    sub.left, sub.width = Inches(2.5), Inches(15.0)
+    sub.top = Inches(3.35)
+    return s
+
+
+def boxes(s, b1, b2, n1="01", n2="02"):
+    setp(s, (5, 7), 0, [n1]); setp(s, (11, 13), 0, [n2])
+    for sid, txt in ((34, b1), (35, b2)):
+        tb = find(s, (sid,))
+        tb.top, tb.height = Inches(6.55), Inches(2.5)
+        setp(s, (sid,), 0, [txt])
+        tb.text_frame.paragraphs[0].runs[0].font.size = Pt(21)
+        tb.text_frame.paragraphs[0].alignment = PP_ALIGN.LEFT
+
+
+def strip_boxes(s):
+    delete(s, {2, 5, 8, 11, 34, 35})
+
+
+# ================================================================== 1 Carátula
 s = S(1)
-setp(s, (4, 6), 0, ["Jornada de investigación"])
-setp(s, (8,), 0, ["Modelo de machine learning para predecir el riesgo de desnutrición crónica infantil en el Perú"])
-find(s, (8,)).text_frame.paragraphs[0].runs[0].font.size = Pt(46)
-find(s, (9,)).top = Inches(6.45)
-find(s, (10,)).top = Inches(8.2)
-setp(s, (9,), 0, ["Datos de la ENDES 2007–2025, LightGBM y SHAP para priorizar a quién llegar primero"])
-setp(s, (10,), 0, ["Abel Guevara Huasco · Verónica Vergara Rojas · Pamela Vallejos Cotrina"])
-setp(s, (10,), 1, ["Ferdinand Pineda Ancco · Asesor: Mg. Nemias Saboya Rios"])
-setp(s, (10,), 2, ["Universidad Peruana Unión — EP Ingeniería de Sistemas"])
-setp(s, (10,), 3, ["Noviembre de 2026"])
-notes(s, "Buenos días. Presentamos nuestro artículo: un modelo de machine learning que estima el riesgo de "
-         "desnutrición crónica en niños menores de cinco años en el Perú, explica qué factores pesan más en cada "
-         "departamento y se implementó en una herramienta web para priorizar a quién llegar primero.")
+t = find(s, (12,))
+t.top, t.height, t.width = Inches(3.55), Inches(4.6), Inches(10.6)
+set_lines(s, (12,), ["MODELO DE MACHINE LEARNING PARA PREDECIR EL RIESGO DE DESNUTRICIÓN CRÓNICA INFANTIL EN EL PERÚ"], size=40)
+setp(s, (11,), 0, ["ENDES · LightGBM · SHAP"])
+find(s, (11,)).text_frame.paragraphs[0].runs[0].font.size = Pt(22)
+textbox(s, 1.16, 9.45, 9.5, 0.9,
+        "Guevara Huasco, A. · Vergara Rojas, V. · Vallejos Cotrina, Z. · Pineda Ancco, F. · Saboya Rios, N.",
+        size=16, color=NAVY)
+notes(s, "Buenos días. Presentamos nuestro artículo: un modelo de machine learning que predice el riesgo de desnutrición "
+         "crónica en niños menores de cinco años en el Perú, explica qué factores pesan más en cada departamento y se "
+         "implementó en una herramienta web.")
 
-# ---------------------------------------------------------------- 2 Problema
+# ================================================================== 2 Equipo
 s = S(2)
-setp(s, LBL, 0, ["1 · El problema"])
-setp(s, TTL, 0, ["Entre 2007 y 2025, 1 de cada 6 niños tuvo desnutrición crónica"])
-setp(s, (11,), 0, ["Hoy afecta al 12% y no está repartida por igual. Se concentra:"])
-notes(s, "La desnutrición crónica es talla baja para la edad. En las 19 rondas de la ENDES afectó en promedio "
-         "a uno de cada seis niños menores de cinco años (16.2%). Hoy está en 12% y se concentra en la sierra "
-         "(26.2%), las zonas rurales (30.7%) y los hogares más pobres.")
+team = [((14,), "Abel Is-Boset Guevara Huasco", 16, "AG", 17),
+        ((29,), "Verónica Lisseth Vergara Rojas", 20, "VV", 21),
+        ((30,), "Zulin Pamela Vallejos Cotrina", 24, "ZV", 25)]
+for path, name, photo, ini, ring in team:
+    tf = find(s, path).text_frame
+    tf.paragraphs[0].runs[0].text = name
+    for r in tf.paragraphs[0].runs[1:]:
+        r.text = ""
+    tf.paragraphs[1].runs[0].text = "5.° año – Ciclo X"
+    for r in tf.paragraphs[1].runs[1:]:
+        r.text = ""
+    ph = find(s, (photo,))
+    x, y, w, h = ph.left, ph.top, ph.width, ph.height
+    ph._element.getparent().remove(ph._element)
+    rg = find(s, (ring,))
+    rg._element.getparent().remove(rg._element)
+    c = s.shapes.add_shape(MSO_SHAPE.OVAL, x, y, w, h)
+    c.fill.solid(); c.fill.fore_color.rgb = NAVY; c.line.fill.background()
+    tf2 = c.text_frame
+    tf2.paragraphs[0].alignment = PP_ALIGN.CENTER
+    r = tf2.paragraphs[0].add_run(); r.text = ini
+    r.font.name = FONT; r.font.size = Pt(54); r.font.bold = True; r.font.color.rgb = WHITE
+    tf2.vertical_anchor = MSO_ANCHOR.MIDDLE
+textbox(s, 1.12, 9.35, 13.0, 0.6, "Coautor: Ferdinand Pineda Ancco · Asesor: Mg. Nemias Saboya Rios",
+        size=20, color=NAVY)
+notes(s, "Somos estudiantes de quinto año de Ingeniería de Sistemas. El artículo tiene como coautor a Ferdinand Pineda "
+         "Ancco y como asesor al Mg. Nemias Saboya Rios.")
 
-# ---------------------------------------------------------------- 3 Pregunta y objetivo
+# ================================================================== 3 Índice
 s = S(3)
-setp(s, LBL, 0, ["1 · El problema"])
-setp(s, (15,), 0, ["Hoy ", "esa decisión se toma con criterios generales del territorio (por ejemplo, toda una zona)."])
-setp(s, (16,), 0, ["Objetivo: ", "desarrollar un modelo que prediga el riesgo, explique sus factores por departamento y se use para priorizar."])
-notes(s, "El personal de salud sabe diagnosticar; el problema es que no puede llegar a todos a la vez. Hoy se "
-         "prioriza por zonas completas. Nuestro objetivo fue desarrollar un modelo de machine learning que prediga "
-         "el riesgo, explique los factores predominantes por departamento y se implemente en una herramienta.")
+setp(s, (6,), 0, ["Introducción y trabajos relacionados"])
+setp(s, (22,), 0, ["Metodología y resultados"])
+setp(s, (23,), 0, ["Conclusiones y sometimiento del artículo"])
+notes(s, "La presentación tiene tres partes: el problema y lo que ya se ha hecho; cómo construimos el modelo y qué "
+         "encontramos; y las conclusiones junto con el envío del artículo a la revista Nutrition.")
 
-# ---------------------------------------------------------------- 4 Datos
-s = S(4)
-setp(s, LBL, 0, ["2 · Métodos"])
-setp(s, TTL, 0, ["¿Con qué datos trabajamos?"])
-setp(s, (26,), 0, ["seleccionados entre 189 columnas en cuatro etapas"])
-notes(s, "Usamos los microdatos públicos de la ENDES del INEI, de 2007 a 2025: 304,271 niños con antropometría "
-         "válida, de los cuales el 15.8% tenía desnutrición crónica. Integramos cinco módulos de la encuesta con "
-         "las llaves HHID y CASEID. La definición es la de la OMS: talla para la edad menor a −2 desviaciones estándar.")
+# ================================================================== 4 Introducción
+s = content_slide(4, "INTRODUCCIÓN", "En el Perú, la desnutrición crónica infantil se estancó en torno al 12% desde 2018", 72)
+boxes(s,
+      "Problema: la prevalencia se mantiene entre 11.3% y 12.4% y llega al 21.5% en zonas rurales. Los recursos no alcanzan para llegar a todos los hogares.",
+      "Objetivo: desarrollar un modelo de machine learning que prediga el riesgo, analice los factores por departamento y se implemente en una herramienta.")
+notes(s, "La desnutrición crónica, talla baja para la edad, afecta el desarrollo físico y cognitivo. En el Perú bajó con "
+         "fuerza hasta 2017, pero desde 2018 se mantiene alrededor del 12%, con una brecha rural persistente. Por eso "
+         "planteamos priorizar a los niños y territorios con mayor riesgo.")
 
-# ---------------------------------------------------------------- 5 Tendencia
-s = S(5)
-setp(s, LBL, 0, ["2 · Métodos"])
-setp(s, TTL, 0, ["La desnutrición crónica se estancó en torno al 12%"])
-setp(s, (8, 10), 0, ["Prevalencia ponderada en menores de 5 años, ENDES 2007–2025: nacional, urbana y rural"])
-setp(s, (23, 25), 0, ["29.2%"])
-setp(s, (26, 28), 0, ["en 2007"])
-setp(s, (26, 28), 1, ["Casi 1 de cada 3 niños tenía talla baja para su edad."])
-setp(s, (31, 33), 0, ["~12%"])
-setp(s, (34, 36), 0, ["desde 2018 (12.0% en 2025)"])
-setp(s, (34, 36), 1, ["Estancada entre 11.3% y 12.4%: ocho años sin bajar."])
-setp(s, (39, 41), 0, ["21.5%"])
-setp(s, (42, 44), 0, ["en la zona rural (2025)"])
-setp(s, (42, 44), 1, ["Casi el triple que en la zona urbana (7.9%)."])
-delete(s, {11, 13, 16, 18, 45})
-pic_fit(s, f"{FIG}/f4.png", 0.75, 3.45, 12.2, 6.6)
-notes(s, "Con el factor de expansión del INEI, la prevalencia nacional bajó de 29.2% en 2007 a 13.0% en 2017, "
-         "pero desde 2018 se mantiene entre 11.3% y 12.4%. La brecha persiste: en 2025 fue 21.5% en la zona rural "
-         "y 7.9% en la urbana. Ese estancamiento justifica dirigir los recursos a quienes tienen más riesgo.")
+# ================================================================== 5 Contexto (figura 4)
+s = content_slide(5, "CONTEXTO", "Prevalencia ponderada de desnutrición crónica en menores de 5 años, ENDES 2007–2025", 72)
+strip_boxes(s)
+pic_fit(s, f"{FIG}/f4.png", 2.0, 4.35, 15.8, 5.95)
+notes(s, "Con el factor de expansión del INEI, la prevalencia nacional bajó de 29.2% en 2007 a 13.0% en 2017 y desde "
+         "entonces está entre 11.3% y 12.4%. En 2025 fue 21.5% en la zona rural y 7.9% en la urbana.")
 
-# ---------------------------------------------------------------- 6 CRISP-DM (copia de la diapositiva del mapa de calor)
-s = S(6)
-setp(s, LBL, 0, ["2 · Métodos"])
-setp(s, TTL, 0, ["Seguimos las fases de CRISP-DM"])
-setp(s, (12, 14), 0, ["189 columnas → 74 factores significativos → 45 predictores."])
-setp(s, (17, 19), 0, ["6 algoritmos, validación cruzada estratificada de 5 pliegues."])
-setp(s, (22, 24), 0, ["Pesos de clase y factor de expansión del INEI."])
-delete(s, {8})
-pic_fit(s, f"{FIG}/f1.png", 0.75, 2.95, 13.35, 7.35)
-notes(s, "Seguimos el marco CRISP-DM. Seleccionamos variables en cuatro etapas: ausentes, correlación y VIF, "
-         "pruebas chi-cuadrado y Kruskal-Wallis, e importancia en gradient boosting, hasta llegar a 45 predictores. "
-         "Comparamos regresión logística, árbol de decisión, XGBoost, CatBoost, red neuronal y LightGBM, con pesos "
-         "de clase para el desbalance y el factor de expansión para que los resultados representen al país.")
+# ================================================================== 6 Trabajos relacionados
+s = content_slide(6, "TRABAJOS RELACIONADOS", "Machine learning aplicado a la desnutrición infantil con encuestas DHS", 52)
+boxes(s,
+      "Antecedentes: ensambles de árboles en Bangladesh y Etiopía; red neuronal con AUC-ROC de 0.84 en Ruanda; en Nutrition, estudios en África, Egipto, India y Filipinas.",
+      "Brechas: exactitud combinada de 68.9%, una sola ronda de encuesta, métricas centradas en la exactitud y sin herramienta. En el Perú, sin explicación territorial.")
+notes(s, "Varios estudios con datos DHS encontraron que los ensambles de árboles predicen mejor. Pero un metaanálisis "
+         "reportó una exactitud combinada de 68.9% con alta heterogeneidad; la mayoría usa una sola ronda, reporta solo "
+         "exactitud y no ofrece una herramienta. En el Perú no se había aplicado un enfoque predictivo con explicación "
+         "territorial a toda la serie de la ENDES.")
 
-# ---------------------------------------------------------------- 7 Los 45 predictores
+# ================================================================== 7 Metodología
 s = S(7)
-setp(s, LBL, 0, ["2 · Métodos"])
-setp(s, TTL, 0, ["Los 45 predictores, en 5 dimensiones"])
-setp(s, (12, 14), 0, ["7"])
-setp(s, (16,), 0, ["Edad, sexo, peso y tamaño al nacer, hemoglobina, intervalo entre partos"])
-setp(s, (21, 23), 0, ["11"])
-setp(s, (24,), 0, ["Madre, embarazo y lactancia"])
-setp(s, (25,), 0, ["Educación de la madre, controles prenatales, hierro, parto, lactancia"])
-setp(s, (30, 32), 0, ["8"])
-setp(s, (33,), 0, ["Hogar y territorio"])
-setp(s, (34,), 0, ["Índice de riqueza, zona urbana o rural, altitud, tamaño del hogar"])
-setp(s, (39, 41), 0, ["10"])
-setp(s, (42,), 0, ["Agua y saneamiento"])
-setp(s, (48, 50), 0, ["9"])
-setp(s, (51,), 0, ["Vivienda"])
-setp(s, (52,), 0, ["Habitaciones, alumbrado, humo en la cocina, combustible, ventanas"])
-setp(s, (55, 57), 0, ["✔  Casi todo se obtiene por entrevista o carné de control. ",
-                      "Solo la hemoglobina requiere laboratorio (tamizaje de anemia)."])
-notes(s, "Los 45 predictores se agrupan en cinco dominios: 7 del niño, 11 de la madre con su embarazo y lactancia, "
-         "8 del hogar y el territorio, 10 de agua y saneamiento y 9 de la vivienda. Corresponden a las causas "
-         "inmediatas, subyacentes y básicas de la desnutrición. La lista completa está en la Tabla suplementaria S1.")
+setp(s, (7, 9), 0, ["Comprensión"])
+setp(s, (10, 12), 0, ["Preparación"])
+setp(s, (16, 18), 0, ["Modelado"])
+setp(s, (13, 15), 0, ["Evaluación y despliegue"])
+textbox(s, 2.12, 9.15, 13.5, 1.0,
+        "Marco CRISP-DM · ENDES 2007–2025 · 189 columnas → 45 predictores · 6 algoritmos · validación cruzada estratificada de 5 pliegues",
+        size=19, color=NAVY)
+notes(s, "Seguimos el marco CRISP-DM. Integramos cinco módulos de la ENDES; armonizamos códigos y seleccionamos variables en "
+         "cuatro etapas, de 189 columnas a 45 predictores; comparamos seis algoritmos con validación cruzada estratificada "
+         "de cinco pliegues, pesos de clase y el factor de expansión; evaluamos con bootstrap y SHAP, y desplegamos una "
+         "aplicación web.")
 
-# ---------------------------------------------------------------- 8 Sin peso ni talla
-s = S(8)
-setp(s, LBL, 0, ["2 · Métodos"])
-setp(s, TTL, 0, ["¿Por qué no se usan el peso ni la talla actuales?"])
-setp(s, (22,), 1, ["13 casos menos por cada 10 000 niños con desnutrición"])
-notes(s, "Para evitar la fuga de información excluimos la talla, el peso y todo lo registrado después de la "
-         "medición: son el diagnóstico mismo. La hemoglobina es el único dato que requiere una punción; al quitarla, "
-         "el AUC-ROC baja de 0.8294 a 0.8281 y la sensibilidad de 76.43% a 76.30%.")
+# ================================================================== 8 Datos y variables
+s = content_slide(8, "DATOS Y VARIABLES", "ENDES 2007–2025 (INEI): 304,271 niños menores de 5 años; 15.8% con desnutrición crónica", 52)
+boxes(s,
+      "Variable objetivo: talla para la edad < −2 DE (OMS). Se excluyeron el peso, la talla y lo registrado después de la medición para evitar fuga de información.",
+      "45 predictores en 5 dominios: niño (7), madre y embarazo (11), hogar y territorio (8), agua y saneamiento (10) y vivienda (9).")
+notes(s, "La variable objetivo sigue el estándar de la OMS. Para no dar al modelo la respuesta, excluimos la talla, el peso "
+         "y todo lo registrado después de la medición. Los 45 predictores cubren las causas inmediatas, subyacentes y "
+         "básicas de la desnutrición.")
 
-# ---------------------------------------------------------------- 9 Comparación de algoritmos (copia de referencias)
+# ================================================================== 9 Resultados (portada)
 s = S(9)
-setp(s, LBL, 0, ["3 · Resultados"])
-setp(s, TTL, 0, ["LightGBM fue el mejor de 6 algoritmos"])
-delete(s, {8, 10, 12, 15, 17, 19, 22, 24, 26, 29, 31, 33, 36, 38, 40})
-rows = [
-    ["Modelo", "AUC-ROC", "AUC-PR", "Sensibilidad", "Precisión", "Especificidad", "F1"],
-    ["LightGBM", "0.830", "0.499", "76.4%", "36.4%", "74.3%", "49.3%"],
-    ["CatBoost", "0.828", "0.507", "29.1%", "61.0%", "96.4%", "39.4%"],
-    ["Red neuronal", "0.823", "0.487", "24.5%", "61.3%", "97.0%", "35.0%"],
-    ["XGBoost", "0.794", "0.425", "75.9%", "32.4%", "69.5%", "45.4%"],
-    ["Regresión logística", "0.793", "0.417", "71.4%", "33.8%", "73.0%", "45.9%"],
-    ["Árbol de decisión", "0.780", "0.391", "71.7%", "32.5%", "71.3%", "44.8%"],
-]
-DARK, TEAL, LIGHT, ROWALT, GRAY = RGBColor(0x17, 0x40, 0x4A), RGBColor(0x1F, 0x8A, 0x8A), RGBColor(0xE6, 0xF4, 0xF1), RGBColor(0xF6, 0xF8, 0xF8), RGBColor(0x5B, 0x6E, 0x74)
-tbl = s.shapes.add_table(len(rows), 7, Inches(0.9), Inches(2.95), Inches(18.2), Inches(0.9 * len(rows))).table
-widths = [3.8, 2.4, 2.4, 2.4, 2.4, 2.4, 2.4]
-for j, w in enumerate(widths):
+tb = find(s, (11,))
+tb.width, tb.height = Inches(7.4), Inches(3.4)
+set_lines(s, (11,), ["• LightGBM: AUC-ROC de 0.83",
+                     "• Detecta el 80.5% de los casos con el umbral de 0.45",
+                     "• Factores clave: pobreza, peso al nacer y altitud",
+                     "• Valoración de expertos: 9 de 10"], size=22)
+notes(s, "En resumen: LightGBM fue el mejor modelo, detecta cuatro de cada cinco casos con el umbral de triaje, los "
+         "factores principales son la pobreza, el peso al nacer y la altitud, y los expertos valoraron la herramienta "
+         "con 9 de 10.")
+
+# ================================================================== 10 Comparación de modelos
+s = content_slide(10, "COMPARACIÓN DE MODELOS", "Media de 5 pliegues de validación cruzada, umbral de 0.5", 52)
+strip_boxes(s)
+rows = [["Modelo", "AUC-ROC", "AUC-PR", "Sensibilidad", "Precisión", "Especificidad", "F1"],
+        ["LightGBM", "0.830", "0.499", "76.4%", "36.4%", "74.3%", "49.3%"],
+        ["CatBoost", "0.828", "0.507", "29.1%", "61.0%", "96.4%", "39.4%"],
+        ["Red neuronal", "0.823", "0.487", "24.5%", "61.3%", "97.0%", "35.0%"],
+        ["XGBoost", "0.794", "0.425", "75.9%", "32.4%", "69.5%", "45.4%"],
+        ["Regresión logística", "0.793", "0.417", "71.4%", "33.8%", "73.0%", "45.9%"],
+        ["Árbol de decisión", "0.780", "0.391", "71.7%", "32.5%", "71.3%", "44.8%"]]
+tbl = s.shapes.add_table(7, 7, Inches(2.0), Inches(4.35), Inches(15.8), Inches(5.6)).table
+for j, w in enumerate([3.8, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0]):
     tbl.columns[j].width = Inches(w)
 for i, row in enumerate(rows):
-    tbl.rows[i].height = Inches(0.9)
+    tbl.rows[i].height = Inches(0.8)
     for j, val in enumerate(row):
-        c = tbl.cell(i, j)
-        c.text = val
-        c.vertical_anchor = MSO_ANCHOR.MIDDLE
-        c.margin_left = c.margin_right = Inches(0.15)
-        para = c.text_frame.paragraphs[0]
-        para.alignment = PP_ALIGN.LEFT if j == 0 else PP_ALIGN.CENTER
-        r = para.runs[0]
-        r.font.name = "Calibri (MS)"
-        r.font.size = Pt(22)
-        r.font.bold = (i == 0 or i == 1)
+        c = tbl.cell(i, j); c.text = val; c.vertical_anchor = MSO_ANCHOR.MIDDLE
+        par = c.text_frame.paragraphs[0]; par.alignment = PP_ALIGN.LEFT if j == 0 else PP_ALIGN.CENTER
+        r = par.runs[0]; r.font.name = FONT; r.font.size = Pt(17 if i == 0 else 20); r.font.bold = i <= 1
         c.fill.solid()
         if i == 0:
-            c.fill.fore_color.rgb = DARK
-            r.font.color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
+            c.fill.fore_color.rgb = NAVY; r.font.color.rgb = WHITE
         elif i == 1:
-            c.fill.fore_color.rgb = LIGHT
-            r.font.color.rgb = TEAL
+            c.fill.fore_color.rgb = YELLOW; r.font.color.rgb = NAVY
         else:
-            c.fill.fore_color.rgb = ROWALT if i % 2 == 0 else RGBColor(0xFF, 0xFF, 0xFF)
-            r.font.color.rgb = DARK
-tb = s.shapes.add_textbox(Inches(0.9), Inches(9.45), Inches(18.2), Inches(0.8))
-tb.text_frame.word_wrap = True
-r = tb.text_frame.paragraphs[0].add_run()
-r.text = ("Media de los 5 pliegues con el umbral de 0.5. CatBoost y la red neuronal tienen alta precisión, "
-          "pero detectan menos del 30% de los casos.")
-r.font.name = "Calibri (MS)"; r.font.size = Pt(20); r.font.color.rgb = GRAY
-notes(s, "En los cinco pliegues, LightGBM tuvo el mayor AUC-ROC (0.83), la mayor sensibilidad (76.4%) y el mayor F1 "
-         "(49.3%). CatBoost tuvo un AUC-PR algo mayor, pero detectó solo el 29.1% de los casos, y la red neuronal, "
-         "entrenada sin pesos, el 24.5%. La prueba de DeLong confirmó la superioridad de LightGBM sobre XGBoost "
-         "y la regresión logística.")
+            c.fill.fore_color.rgb = LIGHT if i % 2 == 0 else WHITE; r.font.color.rgb = GRAY
+notes(s, "LightGBM tuvo el mayor AUC-ROC, la mayor sensibilidad y el mayor F1. CatBoost y la red neuronal tienen alta "
+         "precisión, pero detectan menos del 30% de los casos, porque marcan muy pocos niños. La prueba de DeLong "
+         "confirmó la superioridad de LightGBM sobre XGBoost y la regresión logística.")
 
-# ---------------------------------------------------------------- 10-12 Resultados
-setp(S(10), LBL, 0, ["3 · Resultados"])
-notes(S(10), "Con 1,000 réplicas bootstrap, LightGBM alcanzó un AUC-ROC de 0.829 (IC 95%: 0.827–0.832): entre un niño "
-             "con desnutrición y otro sin ella, da más riesgo al correcto 83 de cada 100 veces. Detecta al 76% de los "
-             "casos y, de cada 100 niños que marca, 36 tienen desnutrición crónica.")
-setp(S(11), LBL, 0, ["3 · Resultados"])
-setp(S(11), (26,), 0, ["Cobertura 8", "0%", " · ", "Acierto", " 34% con el umbral de 0.45."])
-setp(S(12), LBL, 0, ["3 · Resultados"])
-setp(S(12), (22,), 0, ["✔  Resultados comprobados con 1,000 réplicas bootstrap: el margen de error es de alrededor de medio punto."])
-notes(S(12), "El umbral se puede ajustar. Con 0.45, el que usa la aplicación, la sensibilidad sube a 80.5% y la "
-             "precisión baja a 34.0%. En triaje lo preferimos: un falso positivo cuesta una evaluación adicional, "
-             "mientras que un falso negativo deja a un niño en riesgo sin atención.")
+# ================================================================== 11 Desempeño de LightGBM
+s = content_slide(11, "DESEMPEÑO DE LIGHTGBM", "1,000 réplicas bootstrap sobre las probabilidades fuera de pliegue", 52)
+boxes(s,
+      "Umbral 0.5: AUC-ROC 0.829 (IC 95%: 0.827–0.832), sensibilidad 76.4%, precisión 36.4% y F1 49.3%.",
+      "Umbral 0.45 (triaje): detecta el 80.5% de los casos con una precisión de 34.0%. Se prioriza no dejar pasar a un niño en riesgo.")
+notes(s, "Con bootstrap, el AUC-ROC fue 0.829. Una precisión de 36% significa que uno de cada tres niños marcados tiene "
+         "desnutrición crónica. Para triaje es aceptable: un falso positivo cuesta una evaluación adicional, mientras que "
+         "un falso negativo deja a un niño sin atención. Por eso la aplicación usa el umbral de 0.45.")
 
-# ---------------------------------------------------------------- 13 SHAP global (copia del mapa de calor)
-s = S(13)
-setp(s, LBL, 0, ["3 · Resultados"])
-setp(s, TTL, 0, ["Los factores que más pesan en el riesgo"])
-setp(s, (12, 14), 0, ["Pobreza del hogar y bajo peso al nacer: 0.41 cada uno."])
-setp(s, (17, 19), 0, ["Les siguen la altitud (0.26) y el tamaño al nacer (0.25)."])
-setp(s, (22, 24), 0, ["Las 10 primeras variables suman el 68.5% del total."])
-delete(s, {8})
-pic_fit(s, f"{FIG}/f7.png", 0.75, 2.95, 13.35, 7.35)
-notes(s, "Con valores SHAP, calculados sobre 10,000 niños, la importancia se concentra en pocos factores: la pobreza "
-         "del hogar, el peso al nacer, la altitud y el tamaño al nacer. Coinciden con el marco de causas de la "
-         "desnutrición materno-infantil. Son asociaciones aprendidas de la encuesta, no efectos causales.")
+# ================================================================== 12 SHAP global
+s = content_slide(12, "FACTORES ASOCIADOS", "Importancia global con valores SHAP (10,000 niños)", 52)
+strip_boxes(s)
+pic_fit(s, f"{FIG}/f7.png", 2.0, 4.2, 15.8, 6.15)
+notes(s, "La importancia se concentra en pocos factores: la pobreza del hogar y el bajo peso al nacer, ambos con 0.41, "
+         "seguidos de la altitud y el tamaño al nacer. Las diez primeras variables suman el 68.5% del total. Son "
+         "asociaciones aprendidas de la encuesta, no efectos causales.")
 
-# ---------------------------------------------------------------- 14-15 Territorio
-setp(S(14), LBL, 0, ["3 · Resultados"])
-setp(S(14), (18,), 0, ["Amazonas"])
-notes(S(14), "El peso de cada factor cambia por departamento. En Puno destaca la altitud; en Amazonas y Madre de Dios, "
-             "la pobreza; en Huancavelica, el bajo peso al nacer, el intervalo entre partos y la edad del jefe de hogar. "
-             "Esto sugiere priorizar las intervenciones según el perfil de cada territorio y no solo según la prevalencia.")
-s = S(15)
-setp(s, LBL, 0, ["3 · Resultados"])
-delete(s, {8})
-pic_fit(s, f"{FIG}/f9.png", 0.75, 2.95, 13.35, 7.35)
-notes(s, "Este es el mapa completo: cada fila es un departamento y cada columna uno de los diez factores principales. "
-             "Mientras más oscuro, más pesa ese factor en ese departamento. Las líneas separan costa, sierra y selva.")
+# ================================================================== 13 Por departamento
+s = content_slide(13, "FACTORES POR DEPARTAMENTO", "Peso relativo de los 10 factores principales (0 = menor; 1 = mayor)", 52)
+strip_boxes(s)
+pic_fit(s, f"{FIG}/f9.png", 2.0, 4.2, 15.8, 6.15)
+notes(s, "El peso de cada factor cambia por departamento. En Puno destacan la altitud, la pobreza y el bajo peso al nacer; "
+         "en Huancavelica, el bajo peso al nacer, el intervalo entre partos y la edad del jefe de hogar. Esto sugiere "
+         "priorizar según el perfil de cada territorio y no solo según la prevalencia.")
 
-# ---------------------------------------------------------------- 16-17 Aplicación
+# ================================================================== 14 Aplicación web
+s = content_slide(14, "APLICACIÓN WEB", "Streamlit, tres capas · stunting-risk-peru.streamlit.app", 52)
+strip_boxes(s)
+pic_fit(s, f"{FIG}/f10.png", 1.9, 4.2, 7.9, 6.0)
+pic_fit(s, f"{FIG}/f13.png", 10.1, 4.2, 7.9, 6.0)
+notes(s, "La aplicación permite evaluar a un niño y explicar su puntaje, evaluar a un grupo desde un archivo y ver el mapa "
+         "de riesgo por departamento. En 300 niños de la ENDES 2025 reconoció las 45 columnas y marcó 100 como prioridad "
+         "alta.")
+
+# ================================================================== 15 Evaluación por expertos
+s = content_slide(15, "EVALUACIÓN POR EXPERTOS", "4 especialistas (3 nutricionistas y 1 enfermero) · instrumento basado en TAM2", 52)
+boxes(s,
+      "Todos los constructos alcanzaron una mediana de 4 o más sobre 5, y la valoración global tuvo una mediana de 9 sobre 10.",
+      "Menor acuerdo (75%): confianza en el riesgo y disponibilidad de datos. Sugirieron datos más actuales y extender a sobrepeso y micronutrientes.")
+notes(s, "Con la aprobación del Comité de Ética de la Escuela, cuatro especialistas evaluaron la aplicación con 19 ítems "
+         "Likert, una valoración global y cuatro preguntas abiertas. Ninguno objetó los factores mostrados.")
+
+# ================================================================== 16 Conclusiones
 s = S(16)
-setp(s, LBL, 0, ["4 · La aplicación"])
-setp(s, TTL, 0, ["¿Qué hace la aplicación?"])
-notes(s, "Implementamos el modelo en una aplicación web en Streamlit con tres capas: presentación, lógica y datos. "
-         "Con los datos del hogar y de la madre, estima el riesgo del niño sin necesidad de pesarlo ni tallarlo.")
+find(s, (10,)).text_frame.paragraphs[0].runs[0].font.size = Pt(78)
+tb = find(s, (11,))
+tb.width, tb.height = Inches(7.4), Inches(4.4)
+set_lines(s, (11,), ["• LightGBM logró el mejor equilibrio entre discriminación y detección de casos.",
+                     "• Pobreza, peso y tamaño al nacer y altitud fueron los factores más asociados al riesgo.",
+                     "• El peso de cada factor varía por departamento.",
+                     "• La herramienta apoya la focalización y el triaje, no el diagnóstico."], size=20)
+notes(s, "Como trabajo futuro: validar el modelo por periodos, corregir la escala del índice de riqueza entre años, "
+         "incorporar datos locales de establecimientos de salud y extender el enfoque al sobrepeso y a los micronutrientes.")
+
+# ================================================================== 17 Sometimiento
 s = S(17)
-setp(s, LBL, 0, ["4 · La aplicación"])
-setp(s, TTL, 0, ["La aplicación en acción"])
-notes(s, "La aplicación está disponible en stunting-risk-peru.streamlit.app. Permite ver el mapa de riesgo por "
-         "departamento, evaluar a un niño con la explicación de su puntaje y evaluar a un grupo desde un archivo. "
-         "En 300 niños de la ENDES 2025 reconoció las 45 columnas y marcó 100 como prioridad alta.")
+tb = find(s, (11,))
+tb.top, tb.width, tb.height = Inches(5.4), Inches(8.0), Inches(4.2)
+set_lines(s, (11,), ["Revista: Nutrition (Elsevier), ISSN 0899-9007",
+                     "Tipo: artículo de investigación original",
+                     "Título: Machine Learning Model for Predicting the Risk of Childhood Stunting in Peru",
+                     "Fecha de envío: 13 de noviembre de 2026",
+                     "Estado: enviado"], size=20)
+notes(s, "El artículo se envió a la revista Nutrition de Elsevier como investigación original. La evidencia del envío "
+         "está en los anexos.")
 
-# ---------------------------------------------------------------- 18 Panel (copia de la diapositiva de datos)
+# ================================================================== 18 Referencias
 s = S(18)
-setp(s, LBL, 0, ["5 · Evaluación"])
-setp(s, TTL, 0, ["¿Qué opinaron los profesionales de salud?"])
-setp(s, (10,), 0, ["TAM2", ": 19 ítems Likert de 1 a 5, una valoración global de 1 a 10 y 4 preguntas abiertas."])
-setp(s, (13,), 0, ["4 expertos"])
-setp(s, (14,), 0, ["3 nutricionistas y 1 enfermero, con 10 años o más de experiencia"])
-setp(s, (17,), 0, ["≥ 4 de 5"])
-setp(s, (18,), 0, ["mediana en los 8 constructos evaluados"])
-setp(s, (21,), 0, ["9 de 10"])
-setp(s, (22,), 0, ["mediana de la valoración global"])
-setp(s, (25,), 0, ["75%"])
-setp(s, (26,), 0, ["menor acuerdo: confianza en el riesgo y datos disponibles"])
-setp(s, (27,), 0, ["Sugerencias: ", "datos más actuales, extender a sobrepeso y micronutrientes, y más detalle territorial."])
-notes(s, "Con la aprobación del Comité de Ética de la Escuela, cuatro especialistas evaluaron la aplicación con un "
-         "instrumento basado en TAM2. Todos los constructos alcanzaron una mediana de 4 o más, y la valoración global "
-         "tuvo una mediana de 9 sobre 10. El menor acuerdo, 75%, fue en la confianza en los niveles de riesgo y en "
-         "la disponibilidad de los datos y de la hemoglobina.")
-
-# ---------------------------------------------------------------- 19 Alcance
-setp(S(19), LBL, 0, ["6 · Alcance"])
-notes(S(19), "Es importante aclarar el alcance. La herramienta estima una probabilidad y apoya la focalización y el "
-             "triaje; no diagnostica ni reemplaza al profesional. Además, el estudio tiene límites: la ENDES es "
-             "transversal, así que el modelo identifica asociaciones y no causas, no se validó con datos externos ni "
-             "por periodos, y cuatro especialistas no permiten generalizar la evaluación.")
-
-# ---------------------------------------------------------------- 20 Conclusiones (copia de la diapositiva de la pregunta)
-s = S(20)
-setp(s, LBL, 0, ["7 · Conclusiones"])
-setp(s, TTL, 0, ["Conclusiones"])
-setp(s, (12, 14), 0, ["“Los datos de rutina de la encuesta permiten priorizar a los niños con mayor riesgo y explicar cada resultado.”"])
-setp(s, (15,), 0, ["Resultado: ", "LightGBM logró un AUC-ROC de 0.83 y detectó el 80.5% de los casos con el umbral de triaje."])
-setp(s, (16,), 0, ["Trabajo futuro: ", "validar por periodos, sumar datos locales y extender a sobrepeso y micronutrientes."])
-notes(s, "En conclusión, LightGBM logró el mejor equilibrio entre discriminación y detección de casos. La pobreza del "
-         "hogar, el peso y el tamaño al nacer y la altitud fueron los factores más asociados al riesgo, con perfiles "
-         "que varían por departamento. La aplicación explica cada resultado y fue valorada favorablemente como apoyo "
-         "a la focalización, no al diagnóstico. Como trabajo futuro: validar por periodos, corregir la escala del "
-         "índice de riqueza, incorporar datos locales y extender el enfoque al sobrepeso y a los micronutrientes.")
-
-# ---------------------------------------------------------------- 21 Referencias
-s = S(21)
-refs = [
-    ["Black, R. E., Victora, C. G., Walker, S. P., et al. (2013). ",
-     "Maternal and child undernutrition and overweight in low-income and middle-income countries. ",
-     "The Lancet, 382(9890), 427–451."],
-    ["Victora, C. G., Christian, P., Vidaletti, L. P., et al. (2021). ",
-     "Revisiting maternal and child undernutrition in low-income and middle-income countries. ",
-     "The Lancet, 397(10282), 1388–1399."],
-    ["Ke, G., Meng, Q., Finley, T., et al. (2017). ",
-     "LightGBM: A highly efficient gradient boosting decision tree. ",
-     "Advances in Neural Information Processing Systems 30, 3146–3154."],
-    ["Lundberg, S. M., & Lee, S.-I. (2017). ",
-     "A unified approach to interpreting model predictions. ",
-     "Advances in Neural Information Processing Systems 30."],
-    ["Venkatesh, V., & Davis, F. D. (2000). ",
-     "A theoretical extension of the technology acceptance model: four longitudinal field studies. ",
-     "Management Science, 46(2), 186–204."],
-]
-for path, ref in zip([(12, 14), (19, 21), (26, 28), (33, 35), (40, 42)], refs):
-    setp(s, path, 0, ref)
+tb = find(s, (7,))
+tb.top, tb.height, tb.width = Inches(4.4), Inches(5.4), Inches(10.0)
+set_lines(s, (7,), [
+    "Black RE, Victora CG, Walker SP, et al. Maternal and child undernutrition and overweight in low-income and middle-income countries. Lancet. 2013;382:427–51.",
+    "Ke G, Meng Q, Finley T, et al. LightGBM: a highly efficient gradient boosting decision tree. NeurIPS. 2017;30:3146–54.",
+    "Lundberg SM, Lee S-I. A unified approach to interpreting model predictions. NeurIPS. 2017;30.",
+    "Rao B, Rashid M, Hasan MG, Thunga G. Machine learning in predicting child malnutrition: a meta-analysis of DHS data. Int J Environ Res Public Health. 2025;22:449.",
+    "Venkatesh V, Davis FD. A theoretical extension of the technology acceptance model. Manage Sci. 2000;46:186–204."], size=16)
 notes(s, "Estas son las referencias principales. La lista completa está en el artículo.")
-
-# ---------------------------------------------------------------- 22 Gracias
-s = S(22)
-setp(s, (5,), 0, ["Agradecemos su atención. Quedamos atentos a sus preguntas."])
-setp(s, (8,), 0, ["EP Ingeniería de Sistemas — Universidad Peruana Unión · Coautor: Ferdinand Pineda Ancco · Asesor: Mg. Nemias Saboya Rios"])
-notes(s, "Muchas gracias por su atención. Quedamos atentos a sus preguntas.")
 
 p.save(OUT)
 print("saved", OUT)
